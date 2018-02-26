@@ -1,6 +1,6 @@
 # webN64
 
-Copyright (C) 2015 Juergen Wothke
+Copyright (C) 2018 Juergen Wothke
 
 This is a JavaScript/WebAudio plugin of kode54's "LazyUsf2 - USF Decoder" (based on Mupen64plus). This 
 plugin is designed to work with my generic WebAudio ScriptProcessor music player (see separate project). 
