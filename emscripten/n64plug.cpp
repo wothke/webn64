@@ -301,6 +301,14 @@ public:
 	
 	void info_set_lib(std::string& tag, const char * value) {
 		// EMSCRIPTEN depends on all libs being loaded before the song can be played!
+		
+		for (std::vector<std::string>::const_iterator iter = requiredLibs.begin(); iter != requiredLibs.end(); ++iter) {
+			const std::string& libName= *iter;
+			
+			if (strcmp(value, libName.c_str()) == 0) {
+				return;	// no duplicates
+			}			
+		}		
 		requiredLibs.push_back(std::string(value));	
 	}
 
@@ -418,7 +426,7 @@ static int psf_info_meta(void * context, const char * name, const char * value) 
 	}
 	else if (!stricmp_utf8_partial(tag, "_lib"))
 	{
-		DBG("found _lib");
+		DBG("found _lib");		
 		state->info->info_set_lib(tag, value);
 	}
 	else if (!stricmp_utf8(tag, "_enablecompare"))
@@ -603,6 +611,7 @@ public:
 		std::vector<std::string> p = splitpath(m_path, delims);		
 		std::string path= m_path.substr(0, m_path.length()-p.back().length());
 		
+restart:				
 		std::vector<std::string>libs= m_info.get_required_libs();
 		for (std::vector<std::string>::const_iterator iter = libs.begin(); iter != libs.end(); ++iter) {
 			const std::string& libName= *iter;
@@ -611,6 +620,19 @@ public:
 			int r= n64_request_file(libFile.c_str());	// trigger load & check if ready
 			if (r <0) { 
 				return -1; // file not ready
+			} else {
+				// loaded lib may reference another lib..
+				int origLen= libs.size();
+				
+				if ( psf_load( libFile.c_str(), &psf_file_system, 0x21, 0, 0, psf_info_meta, &info_state, 0 ) <= 0 ) {	// used to parse potential additional _lib refs
+					throw exception_io_data( "Not a USF file" );
+				} else {
+					libs= m_info.get_required_libs();
+					
+					if (libs.size() > origLen)  {						
+						goto restart;	// iterator is not robust and will fuck up 
+					}					
+				}				
 			}
 		}
 		return 0;
@@ -695,7 +717,7 @@ public:
 					throw exception_io_data( err );
 			}
 
-			m_buffer.resize(sample_rate * skip_max * 2);
+			m_buffer.resize(sample_rate * skip_max * 2);	// WTF? 44100*2*2 bytes for silence detect???
 			if (remainder)
 			{
 				unsigned long count;
@@ -941,7 +963,7 @@ int n64_seek_sample (int sampleTime) {
 
 // use "regular" file ops - which are provided by Emscripten (just make sure all files are previously loaded)
 
-void* em_fopen( const char * uri ) { 
+void* em_fopen( const char * uri ) {
 	return (void*)fopen(uri, "r");
 }
 size_t em_fread( void * buffer, size_t size, size_t count, void * handle ) {

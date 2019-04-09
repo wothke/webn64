@@ -80,8 +80,13 @@ function doOnTrackReadyToPlay(){
 	ScriptNodePlayer.getInstance().play();
 	songDisplay.redrawSongInfo();
 }
+// depending on the browser/timing the player may be ready before or after (see WASM) init(), i.e.
+// the startup sequence must handle both cases (music can only be started when
+// both the player is ready and init() has been completed..)
+var playerReady= false;		
 function doOnPlayerReady() {
-	if (playerControls) playerControls.playNextSong();
+	playerReady= true;
+	if (playerControls) playerControls.playNextSong(); // playerControls are used to check for init()
 }
 
 function init() {
@@ -106,7 +111,7 @@ function init() {
 	songDisplay= new SongDisplay(new N64DisplayAccessor((function(){return playerControls.getSongInfo();})), 
 								[0x5970e2,0x25db26,0xdcdc2e,0xdcdc2e,0xd12525,0x25db26,0x5970e2,0x25db26,0xdcdc2e,0xdcdc2e,0xd12525,0x25db26], 1, 1, (function(){playerControls.animate()}));
 
-	playerControls.playNextSong();
+	if (playerReady) playerControls.playNextSong();	// player was ready before it could trigger the playback
 }
 </script>
 <script type="text/javascript" src="stdlib/analytics.js"></script>

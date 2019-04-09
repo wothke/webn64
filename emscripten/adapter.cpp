@@ -18,6 +18,9 @@
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 */
 
+// problem: it seems _lib files here may again recursively refer to other _lib files
+// e.g. Ultra64 Sound Format/Yasunori Mitsuda/Mario Party/mp1_1.usflib -> mp1rom.usflib
+
 #include <emscripten.h>
 #include <stdio.h>
 #include <stdlib.h>     /* malloc, free, rand */
